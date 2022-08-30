@@ -1,6 +1,6 @@
 # Burrel trail camera log file decoder
 
-  This tool decodes Burrel/Spartan trail camera log files to readable text.
+  This tool decodes Burrel/Spartan/Spromise trail camera log files to readable text.
 
   This has been tested so far with following cameras:
   * Burrel S12 HD+SMS III
@@ -18,7 +18,7 @@ You can use this tool at [https://jisotalo.github.io/others/burrel-camera-log-fi
 
 ## Burrel-riistakameran lokitiedostojen avaaja
 
-Tämä työkalu muuttaa Burrel-riistakameroiden lokitiedostot selväkielisiksi.
+Tämä työkalu muuttaa Burrel/Spartan/Spromise -riistakameroiden lokitiedostot selväkielisiksi.
 
 Toistaiseksi työkalu on testattu seuraavilla kameroilla:
   * Burrel S12 HD+SMS III
