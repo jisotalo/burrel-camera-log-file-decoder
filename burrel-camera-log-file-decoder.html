@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Burrel trail camera log file decoder</title>
+  <style>
+    body, input{
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9em;
+      max-width:640px;
+    }
+
+    textarea {
+      font-family: 'Consolas';
+    }
+
+    td {
+      vertical-align: top;
+    }
+
+    .bg {
+      background-color: lightgray;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .bolded {
+      font-weight: bold;
+    }
+
+    .bordered {
+      border:2px dashed gray;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Burrel trail camera log file decoder</h1>
+  <p>
+    This tool decodes Burrel/Spartan trail camera log files to readable text.<br>
+    This has been tested so far with following cameras:
+    <ul>
+      <li>Burrel S12 HD+SMS III</li>
+    </ul>
+    The log files are located in SD card (for example /LOG/16221912.TXT).
+  </p>
+  <p>
+    No data is saved, everything is done in your browser.
+  </p>
+  <p>
+    See <a href="https://github.com/jisotalo/burrel-camera-log-file-decoder" target="_blank">https://github.com/jisotalo/burrel-camera-log-file-decoder</a> for source code and more info.
+  </p>
+
+  <div id="drop-target" class="bg center bordered" style="line-height: 30px;min-height: 60px;">
+    Drag and drop the log file here.<br>
+    <a href="#" onclick="toggleFileInput();">Or click here to select file.</a>
+  </div>
+
+  <div id="file-input-container" class="bg center bordered" style="line-height: 30px;display: none;border-top:0;">
+    <input type="file" id="file-input" onchange="handleFileInput();"/>
+  </div>
+
+  <table id="result-table" style="width:100%;display:none;margin-top:20px;">
+    <tbody>
+      <tr>
+        <td colspan="2" class="bg center bolded">RESULT</td>
+      </tr>
+      
+      <tr>
+        <td>
+          <span id="filename">unknown</span>
+        </td>
+        <td style="text-align: right;">
+          <input type="button" value="Copy to clipboard" onclick="copyToClipboard(this);"/> 
+          <input type="button" value="Download decoded file" onclick="downloadFile();"/>
+        </td>
+      </tr>
+
+      <tr>
+        <td colspan="2">
+          <textarea style="width:100%;" rows="20" id="result"></textarea>
+        </td>
+      </tr>
+    </tbody>
+  </table>  
+
+  <p>
+    MIT license - Copyright Jussi Isotalo - <a href="https://github.com/jisotalo"
+      target="_blank">https://github.com/jisotalo</a><br>
+  </p>
+
+  <script>
+    window.onload = (event) => {
+      const dropTarget = document.getElementById('drop-target');
+
+      const dragHtml = `
+        Drag and drop the log file here.<br>
+        <a href="#" onclick="toggleFileInput();">Or click here to select file.</a>`;
+
+      //Register drag over event
+      dropTarget.addEventListener('dragover', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        e.target.innerHTML = 'Drop file here';
+      });
+
+      //Register drag leave event
+      dropTarget.addEventListener('dragleave', (e) => {
+        e.target.innerHTML = dragHtml;
+      }); 
+
+      //Register drop event
+      dropTarget.addEventListener('drop', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        e.target.innerHTML = dragHtml;
+        
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+      }); 
+    }
+
+    /**
+     * Handles FileList object
+     * @param {FileList} files
+     */
+    const handleFiles = (files) => {
+      if (files.length > 0) {
+        const reader = new FileReader();
+
+        reader.onload = (data) => {
+          //File is now loaded
+          decodeBurrelData(data.target.result, files[0].name);
+        }
+
+        reader.readAsArrayBuffer(files[0]);
+      }
+    }
+
+    /**
+     * Decodes Burrel log file to readable text
+     * @param {ArrayBuffer} raw
+     * @param {string} filename
+     */
+    const decodeBurrelData = (raw, filename) => {
+      const data = new Uint8Array(raw);
+      let result = '';
+
+      data.forEach(b => {
+        //XOR each byte
+        result += String.fromCharCode(b ^ 0xfe);
+      });
+
+      document.getElementById('filename').innerText = filename;
+      document.getElementById('result').value = result;
+      document.getElementById('result-table').style.display = "table";
+    }
+
+    /**
+     * Copies result to clipboard
+     */
+    const copyToClipboard = async (sender) => {
+      sender.value = 'Copied to clipboard!';
+      setTimeout(() => sender.value = 'Copy to clipboard', 2000);
+      await navigator.clipboard.writeText(document.getElementById('result').value);
+    }
+
+    /**
+     * Downloads result as text file
+     */
+    const downloadFile = async () => {
+      let newFile = document.getElementById('filename').innerText;
+      newFile = newFile.substr(0, newFile.lastIndexOf('.')) + "-decoded" + newFile.substr(newFile.lastIndexOf('.'));
+
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(document.getElementById('result').value));
+      element.setAttribute('download', newFile);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
+
+    /**
+     * Shows/hides file input for file selection
+     */
+    const toggleFileInput = () => {
+      document.getElementById('file-input-container').style.display 
+        = document.getElementById('file-input-container').style.display == 'none' ? 'block' : 'none';
+    }
+
+    /**
+     * Handles when user select file using file input
+     */
+    const handleFileInput = () => {
+      const files = document.getElementById('file-input').files;
+      handleFiles(files);
+    }
+  </script>
+</body>
+
+</html>
+<!--
+MIT License
+
+Copyright (c) Jussi Isotalo <j.isotalo91@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
